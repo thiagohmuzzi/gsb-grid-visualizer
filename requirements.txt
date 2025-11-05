@@ -1,0 +1,5 @@
+# For local runs only (CI installs GDAL via apt and pins Python wheel accordingly)
+simplekml
+shapely
+# Install GDAL separately to match your system's gdal-config version, e.g.:
+# pip install "GDAL==$(gdal-config --version).*"
