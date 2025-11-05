@@ -1,0 +1,58 @@
+name: Build KMZ from GSB
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system GDAL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin libgdal-dev python3-venv
+          gdal-config --version
+          ogrinfo --version || true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          GDAL_VER=$(gdal-config --version)
+          pip install "GDAL==${GDAL_VER}.*" simplekml shapely
+
+      - name: Build KMZ from all GSB in data/
+        run: |
+          source .venv/bin/activate
+          python scripts/build_kmz.py
+        shell: bash
+
+      - name: Upload artifacts (KMZ files)
+        uses: actions/upload-artifact@v4
+        with:
+          name: kmz-artifacts
+          path: build/*.kmz
+          if-no-files-found: error
+
+      - name: Zip build outputs
+        run: |
+          cd build
+          zip -r ../kmz-artifacts.zip *.kmz
+          cd -
+      
+      - name: Upload zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: kmz-artifacts-zip
+          path: kmz-artifacts.zip
